@@ -7,7 +7,7 @@ extends CharacterBody2D
 @export var posture: float = 100
 @export var power: int = 20
 @export var trust: float
-@export var stress: float
+@export var rage: float
 @export var walk_speed: float = 5000
 @export var run_speed: float = 10000
 @export var melee_range: float = 50
@@ -101,6 +101,13 @@ func run_in(delta: float):
 		last_trainer_command = trainer_command.NONE
 
 func attack(delta: float):
+	var stamina_cost = 10
+	if stamina_cost > stamina: 
+		print("Not enough stamina!")
+		last_trainer_command = trainer_command.NONE
+		return
+	spend_stamina(stamina_cost)
+	
 	if oponent_distance >= melee_range:
 		run_in(delta)
 	else:
@@ -120,6 +127,13 @@ func attack(delta: float):
 		velocity = Vector2.ZERO
 		
 func shoot_projectile():
+	var stamina_cost = 10
+	if stamina_cost > stamina: 
+		print("Not enough stamina!")
+		last_trainer_command = trainer_command.NONE
+		return
+	spend_stamina(stamina_cost)
+		
 	var instance:Node2D = projectile.instantiate()
 	instance.dir = global_position.direction_to(oponent.position)
 	var oponent_direction: Vector2 = global_position.direction_to(oponent.position).normalized()
@@ -139,6 +153,14 @@ func run_out():
 	pass
 	
 func dodge(delta: float):
+	var stamina_cost = 20
+	if !is_dodging:
+		if stamina_cost > stamina: 
+			print("Not enough stamina!")
+			last_trainer_command = trainer_command.NONE
+			return
+		spend_stamina(stamina_cost)
+		
 	var dir = (oponent_position - global_position).normalized()
 	var left_dir = Vector2(dir.y, -dir.x) * dodge_distance
 	var right_dir = Vector2(-dir.y, dir.x) * dodge_distance
@@ -216,7 +238,11 @@ func take_damage(amount: int):
 	
 func spend_stamina(amount: int):
 	stamina -= amount
-	
+	print("Pokémon has spent ", amount, " stamina" )
+
+func regenerate_stamina():
+	pass
+
 func move(speed: float, delta: float):
 	if nav_agent.is_navigation_finished(): return
 	var current_agent_position = global_position
