@@ -4,6 +4,8 @@ extends CharacterBody2D
 @export_category("Stats")
 @export var health: int = 100
 @export var stamina: float = 100
+@export var max_stamina: float = 100
+@export var stamina_regen_rate: float = 5
 @export var posture: float = 100
 @export var power: int = 20
 @export var trust: float
@@ -62,6 +64,9 @@ func _physics_process(delta):
 	oponent_distance = self.position.distance_to(oponent.global_position)
 	
 	if !is_trainer_cpu:
+		
+		regenerate_stamina(delta)
+		
 		set_last_trainer_command()
 		if last_trainer_command == trainer_command.APPROACH:
 			approach(delta)
@@ -240,7 +245,14 @@ func spend_stamina(amount: int):
 	stamina -= amount
 	print("Pokémon has spent ", amount, " stamina" )
 
-func regenerate_stamina():
+func regenerate_stamina(delta: float):
+	
+	var stamina_regen_amount = stamina_regen_rate * delta
+	
+	stamina = min(stamina + stamina_regen_amount, max_stamina)
+	
+	print("Current stamina: ", stamina)
+		
 	pass
 
 func move(speed: float, delta: float):
