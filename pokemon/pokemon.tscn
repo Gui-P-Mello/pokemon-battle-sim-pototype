@@ -1,0 +1,56 @@
+[gd_scene load_steps=9 format=3 uid="uid://csfx5fetqtmdr"]
+
+[ext_resource type="Script" path="res://pokemon/pokemon.gd" id="1_kejry"]
+[ext_resource type="Texture2D" uid="uid://ds2pacsgr35ur" path="res://addons/hgss-sprites/o_hs_006_1.png" id="2_lje8q"]
+[ext_resource type="Texture2D" uid="uid://86llmrud6syc" path="res://addons/hgss-sprites/o-r_hs_006_1.png" id="3_uymj1"]
+[ext_resource type="Texture2D" uid="uid://b8c51mpkythh8" path="res://addons/hgss-sprites/o-b_hs_006_2.png" id="4_qq1uy"]
+[ext_resource type="Texture2D" uid="uid://rw20cx5dqhgm" path="res://addons/hgss-sprites/o-l_hs_006_1.png" id="5_xb840"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_r6j83"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_rl6dp"]
+radius = 12.2555
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_63sv8"]
+radius = 49.0102
+
+[node name="Pokemon" type="CharacterBody2D"]
+motion_mode = 1
+wall_min_slide_angle = 0.0
+script = ExtResource("1_kejry")
+front_texture = ExtResource("2_lje8q")
+right_texture = ExtResource("3_uymj1")
+back_texture = ExtResource("4_qq1uy")
+left_texture = ExtResource("5_xb840")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+position = Vector2(0, -27)
+scale = Vector2(2, 2)
+texture = ExtResource("2_lje8q")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, -14)
+scale = Vector2(1.33263, 1.33263)
+shape = SubResource("CircleShape2D_r6j83")
+
+[node name="HitBoxArea" type="Area2D" parent="."]
+
+[node name="HitBox" type="CollisionShape2D" parent="HitBoxArea"]
+position = Vector2(0, -22)
+scale = Vector2(1.96, 1.96)
+shape = SubResource("CircleShape2D_rl6dp")
+
+[node name="NavigationAgent2D" type="NavigationAgent2D" parent="."]
+debug_enabled = true
+
+[node name="Timer" type="Timer" parent="."]
+wait_time = 0.5
+autostart = true
+
+[node name="MeleeArea" type="Area2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="MeleeArea"]
+position = Vector2(0, -21)
+shape = SubResource("CircleShape2D_63sv8")
+
+[connection signal="timeout" from="Timer" to="." method="_on_timer_timeout"]

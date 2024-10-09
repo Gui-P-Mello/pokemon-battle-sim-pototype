@@ -1,0 +1,30 @@
+[gd_scene load_steps=4 format=3 uid="uid://cg637xbdr1mtb"]
+
+[ext_resource type="Script" path="res://effects/projectile.gd" id="1_t2c04"]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_mtbbb"]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_g2tui"]
+radius = 22.0
+height = 44.0
+
+[node name="Projectile" type="CharacterBody2D"]
+collision_layer = 2
+script = ExtResource("1_t2c04")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, -1)
+shape = SubResource("CapsuleShape2D_mtbbb")
+
+[node name="ColorRect" type="ColorRect" parent="."]
+offset_top = 27.0
+offset_right = 40.0
+offset_bottom = 67.0
+rotation = -2.36042
+color = Color(1, 0.0588235, 0.0705882, 1)
+
+[node name="Area2D" type="Area2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D"]
+position = Vector2(0, -1)
+shape = SubResource("CapsuleShape2D_g2tui")
