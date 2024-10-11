@@ -17,6 +17,7 @@ func _process(delta):
 		if body is Pokemon and body != caster:
 			var hit_pokemon: Pokemon = body
 			hit_pokemon.take_damage(10)
+			hit_pokemon.damage_stance(30)
 		queue_free()
 	
 func collision_test():

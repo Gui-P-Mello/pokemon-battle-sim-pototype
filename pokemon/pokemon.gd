@@ -3,10 +3,12 @@ extends CharacterBody2D
 
 @export_category("Stats")
 @export var health: int = 100
-@export var stamina: float = 100
 @export var max_stamina: float = 100
+@export var stamina: float = max_stamina
 @export var stamina_regen_rate: float = 5
-@export var posture: float = 100
+@export var max_stance: float = 100
+@export var stance: float = max_stance
+@export var stance_regen_rate: float = 10
 @export var power: int = 20
 @export var trust: float
 @export var rage: float
@@ -16,7 +18,7 @@ extends CharacterBody2D
 @export var dodge_distance: float = 100
 
 @export_category("Trainer")
-enum trainer_command {APPROACH, RUN_IN, ATTACK, SHOOT, RUN_OUT, DISTANCE, DODGE, STOP, NONE}
+enum trainer_command {APPROACH, RUN_IN, ATTACK, SHOOT, RUN_OUT, DISTANCE, DODGE, STOP, NONE, STUNNED}
 @export var is_trainer_cpu: bool = true
 var last_trainer_command: trainer_command = trainer_command.NONE
 
@@ -38,6 +40,7 @@ var target_position: Vector2
 var has_dodge_target: bool =  false
 var can_set_dodge_target: bool = true
 var direction: Vector2
+var is_stunned: bool = false
 
 @onready var sprite = $Sprite2D
 @export var front_texture: Texture2D
@@ -50,7 +53,6 @@ func _ready():
 	melee_effect = preload("res://effects/melee_effect.tscn")
 
 func _process(delta):	
-	
 	pass
 
 func _physics_process(delta):
@@ -63,26 +65,34 @@ func _physics_process(delta):
 	make_path()
 	oponent_distance = self.position.distance_to(oponent.global_position)
 	
-	if !is_trainer_cpu:
-		
-		regenerate_stamina(delta)
+	stance_check()
+	regenerate_stamina(delta)
+	regen_stance(delta)
+	
+	if !is_trainer_cpu:		
 		
 		set_last_trainer_command()
-		if last_trainer_command == trainer_command.APPROACH:
+		if last_trainer_command == trainer_command.APPROACH && !is_stunned:
 			approach(delta)
-		if last_trainer_command == trainer_command.STOP:
+		if last_trainer_command == trainer_command.STOP && !is_stunned:
 			last_trainer_command = trainer_command.NONE
 			velocity = Vector2.ZERO
-		if last_trainer_command == trainer_command.ATTACK:
+		if last_trainer_command == trainer_command.ATTACK && !is_stunned:
 			attack(delta)
-		if last_trainer_command == trainer_command.SHOOT:
+		if last_trainer_command == trainer_command.SHOOT && !is_stunned:
 			shoot_projectile()
-		if last_trainer_command == trainer_command.RUN_IN:
+		if last_trainer_command == trainer_command.RUN_IN && !is_stunned:
 			run_in(delta)
-		if last_trainer_command == trainer_command.DISTANCE:
+		if last_trainer_command == trainer_command.DISTANCE && !is_stunned:
 			distance(delta)
-		if last_trainer_command == trainer_command.DODGE:
+		if last_trainer_command == trainer_command.DODGE && !is_stunned:
 			dodge(delta)
+		if last_trainer_command == trainer_command.STUNNED:
+			await get_tree().create_timer(2.0).timeout
+			stance = max_stance
+			is_stunned = false
+			last_trainer_command = trainer_command.NONE
+			pass
 	
 func make_path():
 	await get_tree().physics_frame
@@ -90,23 +100,28 @@ func make_path():
 		nav_agent.target_position = target_position
 	
 func approach(delta:float):
+	var stamina_cost = stamina_regen_rate * delta
 	if oponent_distance >= melee_range:
 		target_position = oponent_position
 		move(walk_speed, delta)
+		spend_stamina(stamina_cost)
 	else:
 		velocity =  Vector2.ZERO
 		last_trainer_command = trainer_command.NONE
 
 func run_in(delta: float):
-	if oponent_distance >= melee_range:
+	var stamina_cost = 20 * delta
+	if oponent_distance >= melee_range && stamina_cost < stamina:
 		target_position = oponent_position
+		spend_stamina(stamina_cost)
 		move(run_speed, delta)
 	else:
 		velocity =  Vector2.ZERO
-		last_trainer_command = trainer_command.NONE
+		last_trainer_command = trainer_command.STOP
 
 func attack(delta: float):
 	var stamina_cost = 10
+	var stance_damage = 30
 	if stamina_cost > stamina: 
 		print("Not enough stamina!")
 		last_trainer_command = trainer_command.NONE
@@ -119,7 +134,7 @@ func attack(delta: float):
 		var bodies = melee_area.get_overlapping_bodies()
 		for body in bodies:
 			if body is Pokemon && body != self:
-				var target = body
+				var target: Pokemon = body
 				var melee_effect_instance = melee_effect.instantiate()
 				
 				if sprite.texture == right_texture || sprite.texture == left_texture:
@@ -128,6 +143,7 @@ func attack(delta: float):
 					melee_effect_instance.position = position + (target.global_position - global_position).normalized()	*50			
 				get_parent().add_child(melee_effect_instance)
 				deal_damage(target)
+				target.damage_stance(stance_damage)
 		last_trainer_command = trainer_command.NONE
 		velocity = Vector2.ZERO
 		
@@ -150,8 +166,10 @@ func shoot_projectile():
 	pass
 
 func distance(delta: float):
+	var stamina_cost = stamina_regen_rate * delta
 	var dir = (oponent_position - position).normalized() * -1
 	velocity = dir * walk_speed * delta
+	spend_stamina(stamina_cost)
 	move_and_slide()
 
 func run_out():
@@ -241,19 +259,34 @@ func take_damage(amount: int):
 	
 	print("CPU Trainer pokémon got hit! Its HP has dropped to: ", health)
 	
-func spend_stamina(amount: int):
+func spend_stamina(amount: float):
 	stamina -= amount
-	print("Pokémon has spent ", amount, " stamina" )
+	#print("Pokémon has spent ", amount, " stamina" )
+	print("Pokémon current stamina", stamina)
 
 func regenerate_stamina(delta: float):
 	
 	var stamina_regen_amount = stamina_regen_rate * delta
 	
-	stamina = min(stamina + stamina_regen_amount, max_stamina)
-	
-	print("Current stamina: ", stamina)
+	if stamina < max_stamina:
+		stamina = min(stamina + stamina_regen_amount, max_stamina)
+		#print("Current stamina: ", stamina)
 		
-	pass
+func damage_stance(amount: float):
+	stance -= amount
+	print("Pokémon current stance", stance)
+	
+func regen_stance(delta: float):
+	var stance_regen_amount = stance_regen_rate * delta
+	
+	if stance < max_stance:
+		stance = min(stance + stance_regen_amount, max_stance)
+		print("Pokémon current stance", stance)
+
+func stance_check():
+	if stance <= 0:
+		is_stunned = true
+		last_trainer_command = trainer_command.STUNNED
 
 func move(speed: float, delta: float):
 	if nav_agent.is_navigation_finished(): return
