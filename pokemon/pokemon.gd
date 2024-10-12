@@ -5,7 +5,7 @@ extends CharacterBody2D
 @export var health: int = 100
 @export var max_stamina: float = 100
 @export var stamina: float = max_stamina
-@export var stamina_regen_rate: float = 5
+@export var stamina_regen_rate: float = 10
 @export var max_stance: float = 100
 @export var stance: float = max_stance
 @export var stance_regen_rate: float = 10
@@ -26,11 +26,17 @@ var last_trainer_command: trainer_command = trainer_command.NONE
 @export var oponent: Pokemon
 @onready var oponent_position: Vector2 = oponent.position
 
+@export_category("Match")
+@export var player_number: int
+
 @onready var nav_agent:= $NavigationAgent2D as NavigationAgent2D
 @onready var melee_area: Area2D = $MeleeArea
 @onready var melee_collision_shape: CollisionShape2D = $MeleeArea/CollisionShape2D
 @onready var test = get_tree().get_root().get_node("Test")
-@onready var projectile = load("res://effects/projectile.tscn")
+@onready var projectile = preload("res://effects/projectile.tscn")
+@onready var angry_texture: Texture = preload("res://ui/resources/0006/Angry.png")
+@onready var angry_attack: Texture = preload("res://ui/resources/0006/0005/Angry.png")
+@onready var pain_texture: Texture = preload("res://ui/resources/0006/Pain.png")
 
 var stop: bool = true
 var faint: bool = false
@@ -47,12 +53,16 @@ var is_stunned: bool = false
 @export var right_texture: Texture2D
 @export var back_texture: Texture2D
 @export var left_texture: Texture2D
+@export var ui: Portrait
 var melee_effect:PackedScene
 
 func _ready():
-	melee_effect = preload("res://effects/melee_effect.tscn")
+	#melee_effect = preload("res://effects/melee_effect.tscn")
+	#ui = get_parent().get_node("UI")
+	pass
 
 func _process(delta):	
+	ui.change_texture(2, angry_attack)
 	pass
 
 func _physics_process(delta):
@@ -126,8 +136,7 @@ func attack(delta: float):
 		print("Not enough stamina!")
 		last_trainer_command = trainer_command.NONE
 		return
-	spend_stamina(stamina_cost)
-	
+			
 	if oponent_distance >= melee_range:
 		run_in(delta)
 	else:
@@ -142,6 +151,7 @@ func attack(delta: float):
 				else:
 					melee_effect_instance.position = position + (target.global_position - global_position).normalized()	*50			
 				get_parent().add_child(melee_effect_instance)
+				spend_stamina(stamina_cost)
 				deal_damage(target)
 				target.damage_stance(stance_damage)
 		last_trainer_command = trainer_command.NONE
@@ -270,7 +280,7 @@ func regenerate_stamina(delta: float):
 	
 	if stamina < max_stamina:
 		stamina = min(stamina + stamina_regen_amount, max_stamina)
-		#print("Current stamina: ", stamina)
+		print("Current stamina: ", stamina)
 		
 func damage_stance(amount: float):
 	stance -= amount
@@ -307,3 +317,6 @@ func update_sprite(direction: Vector2):
 			sprite.texture = front_texture   # Para trás
 		else:
 			sprite.texture =  back_texture # Para frente
+
+func update_portrait():
+	pass
