@@ -18,7 +18,7 @@ extends CharacterBody2D
 @export var dodge_distance: float = 100
 
 @export_category("Trainer")
-enum trainer_command {APPROACH, RUN_IN, ATTACK, SHOOT, RUN_OUT, DISTANCE, DODGE, STOP, NONE, STUNNED}
+enum trainer_command {APPROACH, RUN_IN, ATTACK, SHOOT, RUN_OUT, DISTANCE, DODGE, STOP, NONE, STUNNED, FAINT}
 @export var is_trainer_cpu: bool = true
 var last_trainer_command: trainer_command = trainer_command.NONE
 
@@ -34,9 +34,19 @@ var last_trainer_command: trainer_command = trainer_command.NONE
 @onready var melee_collision_shape: CollisionShape2D = $MeleeArea/CollisionShape2D
 @onready var test = get_tree().get_root().get_node("Test")
 @onready var projectile = preload("res://effects/projectile.tscn")
+@onready var normal_texture: Texture = preload("res://ui/resources/0006/Normal.png")
 @onready var angry_texture: Texture = preload("res://ui/resources/0006/Angry.png")
 @onready var angry_attack: Texture = preload("res://ui/resources/0006/0005/Angry.png")
 @onready var pain_texture: Texture = preload("res://ui/resources/0006/Pain.png")
+@onready var faint_texture: Texture = preload("res://ui/resources/0006/Dizzy.png")
+@onready var stunned_texture: Texture = preload("res://ui/resources/0006/Stunned.png")
+@onready var determined_texture: Texture = preload("res://ui/resources/0006/Determined.png")
+@onready var surprised_texture: Texture = preload("res://ui/resources/0006/Surprised.png")
+@onready var dodge_texture: Texture = preload("res://ui/resources/0006/0005/Determined.png")
+@onready var attack_portrait_timer = $AttackPortraitTimer
+@onready var pain_portrait_timer = $PainPortraitTimer
+@onready var stun_timer = $StunTimer
+@onready var priority_texture: Texture = normal_texture
 
 var stop: bool = true
 var faint: bool = false
@@ -56,13 +66,12 @@ var is_stunned: bool = false
 @export var ui: Portrait
 var melee_effect:PackedScene
 
+
 func _ready():
-	#melee_effect = preload("res://effects/melee_effect.tscn")
-	#ui = get_parent().get_node("UI")
+	melee_effect = preload("res://effects/melee_effect.tscn")
 	pass
 
 func _process(delta):	
-	ui.change_texture(2, angry_attack)
 	pass
 
 func _physics_process(delta):
@@ -75,6 +84,7 @@ func _physics_process(delta):
 	make_path()
 	oponent_distance = self.position.distance_to(oponent.global_position)
 	
+	#health_check()
 	stance_check()
 	regenerate_stamina(delta)
 	regen_stance(delta)
@@ -82,27 +92,33 @@ func _physics_process(delta):
 	if !is_trainer_cpu:		
 		
 		set_last_trainer_command()
-		if last_trainer_command == trainer_command.APPROACH && !is_stunned:
+		if last_trainer_command == trainer_command.APPROACH && !is_stunned && !faint:
 			approach(delta)
-		if last_trainer_command == trainer_command.STOP && !is_stunned:
+		if last_trainer_command == trainer_command.STOP && !is_stunned && !faint:
 			last_trainer_command = trainer_command.NONE
 			velocity = Vector2.ZERO
-		if last_trainer_command == trainer_command.ATTACK && !is_stunned:
+			ui.change_texture(player_number, priority_texture)
+		if last_trainer_command == trainer_command.ATTACK && !is_stunned && !faint:
 			attack(delta)
-		if last_trainer_command == trainer_command.SHOOT && !is_stunned:
+		if last_trainer_command == trainer_command.SHOOT && !is_stunned && !faint:
 			shoot_projectile()
-		if last_trainer_command == trainer_command.RUN_IN && !is_stunned:
+		if last_trainer_command == trainer_command.RUN_IN && !is_stunned && !faint:
+			
 			run_in(delta)
-		if last_trainer_command == trainer_command.DISTANCE && !is_stunned:
+		if last_trainer_command == trainer_command.DISTANCE && !is_stunned && !faint:
+			priority_texture = normal_texture
 			distance(delta)
-		if last_trainer_command == trainer_command.DODGE && !is_stunned:
+		if last_trainer_command == trainer_command.DODGE && !is_stunned && !faint: 
 			dodge(delta)
-		if last_trainer_command == trainer_command.STUNNED:
-			await get_tree().create_timer(2.0).timeout
-			stance = max_stance
-			is_stunned = false
-			last_trainer_command = trainer_command.NONE
+		if last_trainer_command == trainer_command.STUNNED && !faint:
+			
+			#await get_tree().create_timer(2.0).timeout
+			#stance = max_stance
+			#is_stunned = false
+			#last_trainer_command = trainer_command.NONE
 			pass
+		if last_trainer_command == trainer_command.FAINT:
+			ui.change_texture(player_number, faint_texture)
 	
 func make_path():
 	await get_tree().physics_frame
@@ -112,10 +128,12 @@ func make_path():
 func approach(delta:float):
 	var stamina_cost = stamina_regen_rate * delta
 	if oponent_distance >= melee_range:
+		ui.change_texture(player_number, determined_texture)
 		target_position = oponent_position
 		move(walk_speed, delta)
 		spend_stamina(stamina_cost)
 	else:
+		ui.change_texture(player_number, normal_texture)
 		velocity =  Vector2.ZERO
 		last_trainer_command = trainer_command.NONE
 
@@ -123,9 +141,11 @@ func run_in(delta: float):
 	var stamina_cost = 20 * delta
 	if oponent_distance >= melee_range && stamina_cost < stamina:
 		target_position = oponent_position
+		ui.change_texture(player_number, surprised_texture)
 		spend_stamina(stamina_cost)
 		move(run_speed, delta)
 	else:
+		ui.change_texture(player_number, priority_texture)
 		velocity =  Vector2.ZERO
 		last_trainer_command = trainer_command.STOP
 
@@ -150,6 +170,8 @@ func attack(delta: float):
 					melee_effect_instance.position = position + (target.global_position - global_position).normalized()	*50	+ Vector2(0, -20)
 				else:
 					melee_effect_instance.position = position + (target.global_position - global_position).normalized()	*50			
+				ui.change_texture(player_number, angry_attack)
+				attack_portrait_timer.start()
 				get_parent().add_child(melee_effect_instance)
 				spend_stamina(stamina_cost)
 				deal_damage(target)
@@ -163,6 +185,8 @@ func shoot_projectile():
 		print("Not enough stamina!")
 		last_trainer_command = trainer_command.NONE
 		return
+	ui.change_texture(player_number, angry_attack)
+	attack_portrait_timer.start()
 	spend_stamina(stamina_cost)
 		
 	var instance:Node2D = projectile.instantiate()
@@ -176,6 +200,7 @@ func shoot_projectile():
 	pass
 
 func distance(delta: float):
+	ui.change_texture(player_number, determined_texture)
 	var stamina_cost = stamina_regen_rate * delta
 	var dir = (oponent_position - position).normalized() * -1
 	velocity = dir * walk_speed * delta
@@ -192,6 +217,7 @@ func dodge(delta: float):
 			print("Not enough stamina!")
 			last_trainer_command = trainer_command.NONE
 			return
+		ui.change_texture(player_number, dodge_texture)
 		spend_stamina(stamina_cost)
 		
 	var dir = (oponent_position - global_position).normalized()
@@ -220,6 +246,7 @@ func dodge(delta: float):
 		move_and_slide()
 		is_dodging = true
 	else:
+		ui.change_texture(player_number, priority_texture)
 		print("Chegou ao destino de esquiva")
 		is_dodging = false
 		has_dodge_target = false
@@ -258,21 +285,28 @@ func deal_damage(oponent:Pokemon):
 		oponent.take_damage(power)
 
 func take_damage(amount: int):
-	if health <= 0: return
-	health -= amount
-	
-	modulate = Color.RED
-	var tween = create_tween()
-	tween.set_ease(Tween.EASE_IN)
-	tween.set_trans(Tween.TRANS_QUINT)
-	tween.tween_property(self, "modulate", Color.WHITE, 0.3)
-	
-	print("CPU Trainer pokémon got hit! Its HP has dropped to: ", health)
+	if health > 0 && !faint:
+		health -= amount
+		
+		if health > 0:
+			ui.change_texture(player_number, pain_texture)
+			pain_portrait_timer.start()
+		else:
+			faint = true
+			ui.change_texture(player_number, faint_texture)
+			
+		modulate = Color.RED
+		var tween = create_tween()
+		tween.set_ease(Tween.EASE_IN)
+		tween.set_trans(Tween.TRANS_QUINT)
+		tween.tween_property(self, "modulate", Color.WHITE, 0.3)
+		
+		print("CPU Trainer pokémon got hit! Its HP has dropped to: ", health)
 	
 func spend_stamina(amount: float):
 	stamina -= amount
 	#print("Pokémon has spent ", amount, " stamina" )
-	print("Pokémon current stamina", stamina)
+	#print("Pokémon current stamina", stamina)
 
 func regenerate_stamina(delta: float):
 	
@@ -280,23 +314,27 @@ func regenerate_stamina(delta: float):
 	
 	if stamina < max_stamina:
 		stamina = min(stamina + stamina_regen_amount, max_stamina)
-		print("Current stamina: ", stamina)
+		#print("Current stamina: ", stamina)
 		
 func damage_stance(amount: float):
-	stance -= amount
-	print("Pokémon current stance", stance)
+	if stance > 0 && !faint:
+		stance -= amount
+	#print("Pokémon current stance", stance)
 	
 func regen_stance(delta: float):
 	var stance_regen_amount = stance_regen_rate * delta
 	
 	if stance < max_stance:
 		stance = min(stance + stance_regen_amount, max_stance)
-		print("Pokémon current stance", stance)
+		#print("Pokémon current stance", stance)
 
 func stance_check():
-	if stance <= 0:
+	if stance <= 0 && health > 0 && !is_stunned:
 		is_stunned = true
+		ui.change_texture(player_number, stunned_texture)
+		stun_timer.start()
 		last_trainer_command = trainer_command.STUNNED
+
 
 func move(speed: float, delta: float):
 	if nav_agent.is_navigation_finished(): return
@@ -320,3 +358,28 @@ func update_sprite(direction: Vector2):
 
 func update_portrait():
 	pass
+
+
+func _on_attack_portrait_timer_timeout():
+	if !faint:
+		ui.change_texture(player_number,normal_texture)
+		print("Player ", player_number, "texture has changed to normal")
+		attack_portrait_timer.stop()
+
+func _on_pain_portrait_timer_timeout():
+	if !faint:
+		ui.change_texture(player_number, normal_texture)
+		print("Player ", player_number, "texture has changed to normal")
+		pain_portrait_timer.stop()
+	if is_stunned:
+		ui.change_texture(player_number, stunned_texture)
+
+
+
+func _on_stun_timer_timeout():
+	if !faint:
+		stance = max_stance
+		is_stunned = false
+		last_trainer_command = trainer_command.NONE
+		ui.change_texture(player_number, normal_texture)
+		stun_timer.stop()

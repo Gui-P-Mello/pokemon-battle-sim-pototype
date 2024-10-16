@@ -9,9 +9,9 @@ func _ready():
 	var angry_texture: Texture = preload("res://ui/resources/0006/Angry.png")
 	var angry_attack: Texture = preload("res://ui/resources/0006/0005/Angry.png")
 	var pain_texture: Texture = preload("res://ui/resources/0006/Pain.png")
-	if player_number == 1:
-		change_texture(1 ,angry_attack)
-		change_texture(2, pain_texture)
+	#if player_number == 1:
+		#change_texture(1 ,angry_attack)
+		#change_texture(2, pain_texture)
 
 
 func change_texture(player_number:int, new_texture: Texture):

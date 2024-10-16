@@ -43,9 +43,9 @@ shape = SubResource("CircleShape2D_rl6dp")
 [node name="NavigationAgent2D" type="NavigationAgent2D" parent="."]
 debug_enabled = true
 
-[node name="Timer" type="Timer" parent="."]
+[node name="AttackPortraitTimer" type="Timer" parent="."]
 wait_time = 0.5
-autostart = true
+one_shot = true
 
 [node name="MeleeArea" type="Area2D" parent="."]
 
@@ -53,4 +53,16 @@ autostart = true
 position = Vector2(0, -21)
 shape = SubResource("CircleShape2D_63sv8")
 
-[connection signal="timeout" from="Timer" to="." method="_on_timer_timeout"]
+[node name="PainPortraitTimer" type="Timer" parent="."]
+wait_time = 0.5
+one_shot = true
+
+[node name="StunTimer" type="Timer" parent="."]
+wait_time = 2.0
+one_shot = true
+
+[connection signal="timeout" from="AttackPortraitTimer" to="." method="_on_timer_timeout"]
+[connection signal="timeout" from="AttackPortraitTimer" to="." method="_on_test_timer_timeout"]
+[connection signal="timeout" from="AttackPortraitTimer" to="." method="_on_attack_portrait_timer_timeout"]
+[connection signal="timeout" from="PainPortraitTimer" to="." method="_on_pain_portrait_timer_timeout"]
+[connection signal="timeout" from="StunTimer" to="." method="_on_stun_timer_timeout"]
