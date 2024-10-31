@@ -1,10 +1,12 @@
-[gd_scene load_steps=9 format=3 uid="uid://csfx5fetqtmdr"]
+[gd_scene load_steps=11 format=3 uid="uid://csfx5fetqtmdr"]
 
 [ext_resource type="Script" path="res://pokemon/pokemon.gd" id="1_kejry"]
 [ext_resource type="Texture2D" uid="uid://ds2pacsgr35ur" path="res://addons/hgss-sprites/o_hs_006_1.png" id="2_lje8q"]
 [ext_resource type="Texture2D" uid="uid://86llmrud6syc" path="res://addons/hgss-sprites/o-r_hs_006_1.png" id="3_uymj1"]
 [ext_resource type="Texture2D" uid="uid://b8c51mpkythh8" path="res://addons/hgss-sprites/o-b_hs_006_2.png" id="4_qq1uy"]
 [ext_resource type="Texture2D" uid="uid://rw20cx5dqhgm" path="res://addons/hgss-sprites/o-l_hs_006_1.png" id="5_xb840"]
+[ext_resource type="Script" path="res://pokemon/StateMachine.gd" id="6_revp2"]
+[ext_resource type="Script" path="res://scripts/FSM/states/Idle.gd" id="7_sb374"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_r6j83"]
 
@@ -61,8 +63,27 @@ one_shot = true
 wait_time = 2.0
 one_shot = true
 
+[node name="ProjectileCD" type="Timer" parent="."]
+wait_time = 0.5
+
+[node name="MeleeCD" type="Timer" parent="."]
+wait_time = 0.25
+
+[node name="StateMachine" type="Node" parent="." node_paths=PackedStringArray("initial_state", "pokemon")]
+script = ExtResource("6_revp2")
+initial_state = NodePath("Idle")
+pokemon = NodePath("..")
+
+[node name="Idle" type="Node" parent="StateMachine"]
+script = ExtResource("7_sb374")
+
+[node name="Timer" type="Timer" parent="StateMachine/Idle"]
+
 [connection signal="timeout" from="AttackPortraitTimer" to="." method="_on_timer_timeout"]
 [connection signal="timeout" from="AttackPortraitTimer" to="." method="_on_test_timer_timeout"]
 [connection signal="timeout" from="AttackPortraitTimer" to="." method="_on_attack_portrait_timer_timeout"]
 [connection signal="timeout" from="PainPortraitTimer" to="." method="_on_pain_portrait_timer_timeout"]
 [connection signal="timeout" from="StunTimer" to="." method="_on_stun_timer_timeout"]
+[connection signal="timeout" from="ProjectileCD" to="." method="_on_projectile_cd_timeout"]
+[connection signal="timeout" from="MeleeCD" to="." method="_on_melee_cd_timeout"]
+[connection signal="timeout" from="StateMachine/Idle/Timer" to="StateMachine/Idle" method="_on_timer_timeout"]

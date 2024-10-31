@@ -47,6 +47,8 @@ var last_trainer_command: trainer_command = trainer_command.NONE
 @onready var pain_portrait_timer = $PainPortraitTimer
 @onready var stun_timer = $StunTimer
 @onready var priority_texture: Texture = normal_texture
+@onready var melee_cd = $MeleeCD
+@onready var shoot_projectile_cd = $ProjectileCD
 
 var stop: bool = true
 var faint: bool = false
@@ -57,6 +59,8 @@ var has_dodge_target: bool =  false
 var can_set_dodge_target: bool = true
 var direction: Vector2
 var is_stunned: bool = false
+var can_melee: bool = true
+var can_shoot_projectile: bool = true
 
 @onready var sprite = $Sprite2D
 @export var front_texture: Texture2D
@@ -159,7 +163,7 @@ func attack(delta: float):
 			
 	if oponent_distance >= melee_range:
 		run_in(delta)
-	else:
+	elif can_melee:
 		var bodies = melee_area.get_overlapping_bodies()
 		for body in bodies:
 			if body is Pokemon && body != self:
@@ -176,6 +180,8 @@ func attack(delta: float):
 				spend_stamina(stamina_cost)
 				deal_damage(target)
 				target.damage_stance(stance_damage)
+				can_melee = false
+				melee_cd.start()
 		last_trainer_command = trainer_command.NONE
 		velocity = Vector2.ZERO
 		
@@ -185,19 +191,21 @@ func shoot_projectile():
 		print("Not enough stamina!")
 		last_trainer_command = trainer_command.NONE
 		return
-	ui.change_texture(player_number, angry_attack)
-	attack_portrait_timer.start()
-	spend_stamina(stamina_cost)
-		
-	var instance:Node2D = projectile.instantiate()
-	instance.dir = global_position.direction_to(oponent.position)
-	var oponent_direction: Vector2 = global_position.direction_to(oponent.position).normalized()
-	var instance_offset: Vector2 = oponent_direction * 50
-	instance.caster = self
-	instance.position = position + instance_offset
-	get_parent().add_child(instance)
-	last_trainer_command = trainer_command.NONE
-	pass
+	elif can_shoot_projectile:
+		ui.change_texture(player_number, angry_attack)
+		attack_portrait_timer.start()
+		spend_stamina(stamina_cost)
+		can_shoot_projectile = false
+		shoot_projectile_cd.start()
+			
+		var instance:Node2D = projectile.instantiate()
+		instance.dir = global_position.direction_to(oponent.position)
+		var oponent_direction: Vector2 = global_position.direction_to(oponent.position).normalized()
+		var instance_offset: Vector2 = oponent_direction * 50
+		instance.caster = self
+		instance.position = position + instance_offset
+		get_parent().add_child(instance)
+		last_trainer_command = trainer_command.NONE
 
 func distance(delta: float):
 	ui.change_texture(player_number, determined_texture)
@@ -261,6 +269,7 @@ func dodge(delta: float):
 	tween.tween_property(self, "modulate", Color.WHITE, 0.3)
 
 func behaviour():
+	
 	pass
 
 func set_last_trainer_command():
@@ -335,7 +344,6 @@ func stance_check():
 		stun_timer.start()
 		last_trainer_command = trainer_command.STUNNED
 
-
 func move(speed: float, delta: float):
 	if nav_agent.is_navigation_finished(): return
 	var current_agent_position = global_position
@@ -359,7 +367,6 @@ func update_sprite(direction: Vector2):
 func update_portrait():
 	pass
 
-
 func _on_attack_portrait_timer_timeout():
 	if !faint:
 		ui.change_texture(player_number,normal_texture)
@@ -374,8 +381,6 @@ func _on_pain_portrait_timer_timeout():
 	if is_stunned:
 		ui.change_texture(player_number, stunned_texture)
 
-
-
 func _on_stun_timer_timeout():
 	if !faint:
 		stance = max_stance
@@ -383,3 +388,11 @@ func _on_stun_timer_timeout():
 		last_trainer_command = trainer_command.NONE
 		ui.change_texture(player_number, normal_texture)
 		stun_timer.stop()
+
+func _on_melee_cd_timeout():
+	can_melee = true
+	melee_cd.stop()
+
+func _on_projectile_cd_timeout():
+	can_shoot_projectile = true
+	shoot_projectile_cd.stop()
