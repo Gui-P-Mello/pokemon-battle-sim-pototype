@@ -6,3 +6,5 @@ func physics_update(delta: float):
 		pokemon.approach(delta)
 		if pokemon.oponent_distance <= 350:
 			transitioned.emit(self, "RunIn")
+	else:
+		transitioned.emit(self, "RunIn")

@@ -18,6 +18,15 @@ func update(delta: float):
 				transitioned.emit(self, "Attack")
 			if pokemon.oponent_distance > 400:
 				transitioned.emit(self, "Shoot")
+			if pokemon.oponent_distance <= 400:
+				transitioned.emit(self, "RunIn")
+		if pokemon.health < 50:
+			if pokemon.oponent_distance <= pokemon.melee_range:
+				transitioned.emit(self, "Attack")
+			if pokemon.oponent_distance > 400:
+				transitioned.emit(self, "Shoot")
+			if pokemon.oponent_distance <= 400:
+				transitioned.emit(self, "RunIn")
 	#if can_shoot && pokemon.is_trainer_cpu:
 		#pokemon.shoot_projectile()
 		#timer.start()
