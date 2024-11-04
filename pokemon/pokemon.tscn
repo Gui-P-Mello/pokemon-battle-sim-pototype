@@ -80,8 +80,8 @@ script = ExtResource("7_sb374")
 [node name="Timer" type="Timer" parent="StateMachine/Idle"]
 
 [connection signal="timeout" from="AttackPortraitTimer" to="." method="_on_timer_timeout"]
-[connection signal="timeout" from="AttackPortraitTimer" to="." method="_on_attack_portrait_timer_timeout"]
 [connection signal="timeout" from="AttackPortraitTimer" to="." method="_on_test_timer_timeout"]
+[connection signal="timeout" from="AttackPortraitTimer" to="." method="_on_attack_portrait_timer_timeout"]
 [connection signal="timeout" from="PainPortraitTimer" to="." method="_on_pain_portrait_timer_timeout"]
 [connection signal="timeout" from="StunTimer" to="." method="_on_stun_timer_timeout"]
 [connection signal="timeout" from="ProjectileCD" to="." method="_on_projectile_cd_timeout"]
