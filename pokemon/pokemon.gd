@@ -161,7 +161,7 @@ func attack(delta: float):
 		last_trainer_command = trainer_command.NONE
 		return
 			
-	if oponent_distance >= melee_range:
+	if oponent_distance > melee_range && !is_trainer_cpu:
 		run_in(delta)
 	elif can_melee:
 		var bodies = melee_area.get_overlapping_bodies()
@@ -300,9 +300,9 @@ func take_damage(amount: int):
 		if health > 0:
 			ui.change_texture(player_number, pain_texture)
 			pain_portrait_timer.start()
-		else:
-			faint = true
-			ui.change_texture(player_number, faint_texture)
+	else:
+		faint = true
+		ui.change_texture(player_number, faint_texture)
 			
 		modulate = Color.RED
 		var tween = create_tween()
@@ -318,27 +318,28 @@ func spend_stamina(amount: float):
 	#print("Pokémon current stamina", stamina)
 
 func regenerate_stamina(delta: float):
-	
-	var stamina_regen_amount = stamina_regen_rate * delta
-	
-	if stamina < max_stamina:
-		stamina = min(stamina + stamina_regen_amount, max_stamina)
-		#print("Current stamina: ", stamina)
+	if !faint:
+		var stamina_regen_amount = stamina_regen_rate * delta
 		
+		if stamina < max_stamina:
+			stamina = min(stamina + stamina_regen_amount, max_stamina)
+			#print("Current stamina: ", stamina)
+			
 func damage_stance(amount: float):
-	if stance > 0 && !faint:
+	if stance > 0 && !faint && !is_stunned:
 		stance -= amount
 	#print("Pokémon current stance", stance)
 	
 func regen_stance(delta: float):
-	var stance_regen_amount = stance_regen_rate * delta
-	
-	if stance < max_stance:
-		stance = min(stance + stance_regen_amount, max_stance)
-		#print("Pokémon current stance", stance)
+	if !faint:
+		var stance_regen_amount = stance_regen_rate * delta
+		
+		if stance < max_stance:
+			stance = min(stance + stance_regen_amount, max_stance)
+			#print("Pokémon current stance", stance)
 
 func stance_check():
-	if stance <= 0 && health > 0 && !is_stunned:
+	if stance <= 0 && health > 0 && !is_stunned && !faint:
 		is_stunned = true
 		ui.change_texture(player_number, stunned_texture)
 		stun_timer.start()
